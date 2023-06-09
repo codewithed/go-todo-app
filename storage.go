@@ -11,7 +11,7 @@ import (
 type Storage interface {
 	CreateTodo(*Todo) error
 	DeleteTodo(int) error
-	UpdateTodo(int, any) error
+	UpdateTodo(int, *UpdateTodoRequest) error
 	GetTodos() ([]*Todo, error)
 	GetTodoByID(int) (*Todo, error)
 }

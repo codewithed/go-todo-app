@@ -9,10 +9,18 @@ import (
 )
 
 type ApiServer struct {
-	port string
+	ListenAddr string
+	Store      Storage
 }
 
-func startRouter(s *ApiServer) {
+func NewApiServer(addr string, store Storage) *ApiServer {
+	return &ApiServer{
+		ListenAddr: addr,
+		Store:      store,
+	}
+}
+
+func (s *ApiServer) Run() {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
@@ -20,7 +28,7 @@ func startRouter(s *ApiServer) {
 	})
 	r.HandleFunc("/todos", makeHTTPHandleFunc(s.handleGetTodos))
 	r.HandleFunc("/todos/{id}", makeHTTPHandleFunc(s.handleGetTodoByID))
-	http.ListenAndServe(s.port, r)
+	http.ListenAndServe(s.ListenAddr, r)
 }
 
 func (s *ApiServer) handleGetTodos(w http.ResponseWriter, r *http.Request) error {
