@@ -2,7 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -43,6 +45,13 @@ func (s *ApiServer) handleTodos(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (s *ApiServer) handleTodosByID(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == "DELETE" {
+		return s.handleDeleteTodoByID(w, r)
+	}
+
+	if r.Method == "PUT" || r.Method == "PATCH" {
+		return s.handleUpdateTodoByID(w, r)
+	}
 	return nil
 }
 
@@ -50,20 +59,6 @@ type apiFunc func(http.ResponseWriter, *http.Request) error
 
 type ApiError struct {
 	Error string `json:"error"`
-}
-
-func makeHTTPHandleFunc(f apiFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if err := f(w, r); err != nil {
-			WriteJSON(w, http.StatusBadRequest, ApiError{Error: err.Error()})
-		}
-	}
-}
-
-func WriteJSON(w http.ResponseWriter, status int, v any) error {
-	w.WriteHeader(status)
-	w.Header().Add("Content-Type", "application/json")
-	return json.NewEncoder(w).Encode(v)
 }
 
 func (s *ApiServer) handleGetAllTodos(w http.ResponseWriter, r *http.Request) error {
@@ -92,4 +87,68 @@ func (s *ApiServer) handleCreateTodo(w http.ResponseWriter, r *http.Request) err
 	}
 
 	return WriteJSON(w, http.StatusOK, todo)
+}
+
+func (s *ApiServer) handleDeleteTodoByID(w http.ResponseWriter, r *http.Request) error {
+	// get id from the request body
+	id, err := getID(r)
+	if err != nil {
+		return err
+	}
+
+	// perform the delete operation using the s.Store.DeleteTodoById operation
+	if err := s.Store.DeleteTodo(id); err != nil {
+		return err
+	}
+
+	// return success
+	return WriteJSON(w, http.StatusOK, fmt.Sprintf("todo with id %d deleted", id))
+
+}
+
+func (s *ApiServer) handleUpdateTodoByID(w http.ResponseWriter, r *http.Request) error {
+	id, err := getID(r)
+	if err != nil {
+		return err
+	}
+
+	// create a new updateTodorequest from the request body
+	updateTodoRequest := new(UpdateTodoRequest)
+	if err := json.NewDecoder(r.Body).Decode(updateTodoRequest); err != nil {
+		return err
+	}
+
+	// perform the database operatyion using the s.Store.UpdateTodo
+	if err := s.Store.UpdateTodo(id, updateTodoRequest); err != nil {
+		return err
+	}
+
+	return WriteJSON(w, http.StatusOK, updateTodoRequest)
+}
+
+// HELPER FUNCTIONS
+func makeHTTPHandleFunc(f apiFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := f(w, r); err != nil {
+			WriteJSON(w, http.StatusBadRequest, ApiError{Error: err.Error()})
+		}
+	}
+}
+
+func WriteJSON(w http.ResponseWriter, status int, v any) error {
+	w.WriteHeader(status)
+	w.Header().Add("Content-Type", "application/json")
+	return json.NewEncoder(w).Encode(v)
+}
+
+func getID(r *http.Request) (int, error) {
+	id := chi.URLParam(r, "id")
+
+	// validate the id
+	idInt, err := strconv.Atoi(id)
+	if err != nil {
+		return idInt, fmt.Errorf("Invalid id given: %v", id)
+	}
+
+	return idInt, nil
 }
