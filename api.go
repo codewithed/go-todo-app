@@ -45,6 +45,10 @@ func (s *ApiServer) handleTodos(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (s *ApiServer) handleTodosByID(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == "GET" {
+		return s.handleGetTodoByID(w, r)
+	}
+
 	if r.Method == "DELETE" {
 		return s.handleDeleteTodoByID(w, r)
 	}
@@ -87,6 +91,24 @@ func (s *ApiServer) handleCreateTodo(w http.ResponseWriter, r *http.Request) err
 	}
 
 	return WriteJSON(w, http.StatusOK, todo)
+}
+
+func (s *ApiServer) handleGetTodoByID(w http.ResponseWriter, r *http.Request) error {
+	// get id from the request body
+	id, err := getID(r)
+	if err != nil {
+		return err
+	}
+
+	// perform the delete operation using the s.Store.DeleteTodoById operation
+	todo, err := s.Store.GetTodoByID(id)
+	if err != nil {
+		return err
+	}
+
+	// return success
+	return WriteJSON(w, http.StatusOK, todo)
+
 }
 
 func (s *ApiServer) handleDeleteTodoByID(w http.ResponseWriter, r *http.Request) error {
