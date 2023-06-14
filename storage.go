@@ -39,8 +39,8 @@ func (s *PostgresStore) createTodosTable() error {
 		id SERIAL PRIMARY KEY NOT NULL,
 		name varchar(1000) NOT NULL,
 		description varchar(10000) NOT NULL,
-		is_completed bool NOT NULL,
-		created_at timestamptmz NOT NULL, 
+		completed bool NOT NULL,
+		created_at timestamp NOT NULL
 	)`
 
 	_, err := s.db.Exec(query)
@@ -52,12 +52,11 @@ func (s *PostgresStore) createTodosTable() error {
 }
 
 func (s *PostgresStore) CreateTodo(todo *Todo) error {
-	query := `INSERT INTO todos (id, name, description, completed, created_at) VALUES(
-		$1, $2, $3, $4, $5
+	query := `INSERT INTO todos (name, description, completed, created_at) VALUES(
+		$1, $2, $3, $4
 	)`
 	_, err := s.db.Query(
 		query,
-		todo.ID,
 		todo.Name,
 		todo.Description,
 		todo.Completed,
@@ -85,7 +84,7 @@ func (s *PostgresStore) GetTodoByID(id int) (*Todo, error) {
 }
 
 func (s *PostgresStore) DeleteTodo(id int) error {
-	_, err := s.db.Query(`DELETE * FROM todos WHERE id = $1`, id)
+	_, err := s.db.Query(`DELETE FROM todos WHERE id = $1`, id)
 	if err != nil {
 		return err
 	}
@@ -106,8 +105,7 @@ func (s *PostgresStore) UpdateTodo(id int, req *UpdateTodoRequest) error {
 
 	if req.Description != "" {
 		_, err := s.db.Exec(`UPDATE todos 
-		SET 
-		description = $1,
+		SET description = $1
 		WHERE id = $2`, req.Description, id)
 		if err != nil {
 			return err
@@ -116,8 +114,7 @@ func (s *PostgresStore) UpdateTodo(id int, req *UpdateTodoRequest) error {
 
 	if req.Completed == true || req.Completed == false {
 		_, err := s.db.Exec(`UPDATE todos 
-		SET 
-		completed = $1,
+		SET completed = $1
 		WHERE id = $2`, req.Completed, id)
 		if err != nil {
 			return err

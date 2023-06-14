@@ -10,6 +10,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if err := store.db.Ping(); err != nil {
+		log.Fatal(err)
+	}
+
 	if err := store.Init(); err != nil {
 		log.Fatal(err)
 	}
